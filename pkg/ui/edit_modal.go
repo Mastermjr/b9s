@@ -54,6 +54,7 @@ type EditModal struct {
 	issueType   *string
 	assignee    *string
 	labels      *string
+	parent      *string
 	description *string
 	notes       *string
 	deferUntil  *string // "defer until" date when status is deferred (bd-j7mx)
@@ -76,18 +77,23 @@ type EditModal struct {
 type EditSuggestions struct {
 	Labels    []string
 	Assignees []string
+	Parents   []string
 }
 
 func sanitizeEditSuggestions(suggestions EditSuggestions) EditSuggestions {
 	clean := EditSuggestions{
 		Labels:    make([]string, len(suggestions.Labels)),
 		Assignees: make([]string, len(suggestions.Assignees)),
+		Parents:   make([]string, len(suggestions.Parents)),
 	}
 	for i := range suggestions.Labels {
 		clean.Labels[i] = sanitizeTerminalLine(suggestions.Labels[i])
 	}
 	for i := range suggestions.Assignees {
 		clean.Assignees[i] = sanitizeTerminalLine(suggestions.Assignees[i])
+	}
+	for i := range suggestions.Parents {
+		clean.Parents[i] = sanitizeTerminalLine(suggestions.Parents[i])
 	}
 	return clean
 }
@@ -146,7 +152,14 @@ func NewCreateModal(theme Theme, suggestions ...EditSuggestions) EditModal {
 // NewCreateModalFor creates the issue as actor: the new issue's creator, and
 // its assignee until the user changes the field.
 func NewCreateModalFor(theme Theme, actor string, suggestions ...EditSuggestions) EditModal {
+	return NewCreateModalForParent(theme, actor, "", suggestions...)
+}
+
+// NewCreateModalForParent creates an issue form with the selected issue as its
+// initial parent. Clearing Parent in the form still creates a root issue.
+func NewCreateModalForParent(theme Theme, actor, parent string, suggestions ...EditSuggestions) EditModal {
 	actor = sanitizeTerminalLine(actor)
+	parent = sanitizeTerminalLine(parent)
 	title := ""
 	description := ""
 	priority := "P0"
@@ -166,6 +179,7 @@ func NewCreateModalFor(theme Theme, actor string, suggestions ...EditSuggestions
 		issueType:    &issueType,
 		assignee:     &assignee,
 		labels:       &labels,
+		parent:       &parent,
 		notes:        &notes,
 		deferUntil:   &deferUntil,
 	}
@@ -224,6 +238,10 @@ func buildCreateForm(m *EditModal) *huh.Form {
 	if len(m.suggestions.Labels) > 0 {
 		labelsInput = labelsInput.Suggestions(m.suggestions.Labels)
 	}
+	parentInput := huh.NewInput().Title("Parent (clear for root issue)").Value(m.parent)
+	if len(m.suggestions.Parents) > 0 {
+		parentInput = parentInput.Suggestions(m.suggestions.Parents)
+	}
 	return huh.NewForm(
 		huh.NewGroup(
 			huh.NewInput().Title("Title").Value(m.title),
@@ -236,6 +254,7 @@ func buildCreateForm(m *EditModal) *huh.Form {
 				Value(m.issueType),
 			assigneeInput,
 			labelsInput,
+			parentInput,
 			huh.NewText().Title("Notes").Value(m.notes).Lines(3),
 		),
 	).WithTheme(huh.ThemeDracula()).
@@ -468,6 +487,7 @@ func (m EditModal) BuildCreateArgs() map[string]string {
 		"type":        *m.issueType,
 		"assignee":    *m.assignee,
 		"labels":      *m.labels,
+		"parent":      *m.parent,
 		"description": *m.description,
 		"notes":       *m.notes,
 		// The actor is the creator, fixed when the modal opened; it does not

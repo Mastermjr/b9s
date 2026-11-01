@@ -249,12 +249,12 @@ Every change goes through the `bd` CLI, so b9s and `bd` always agree on what is 
 | Keys | Action | Runs |
 |------|--------|------|
 | `e` | Edit the issue in a form | `bd update` |
-| `Ctrl-N` | Create an issue | `bd create` |
+| `Ctrl-N` | Create an issue, with the selected issue prefilled as Parent | `bd create` |
 | `S` | Pick a status: open, in_progress, blocked, deferred, pinned, hooked, review or closed | `bd update --status` |
 | `K` | Close, after confirmation. For one issue, `C` in the dialog (Comment and close) asks for a comment, adds it, then closes | `bd close`, `bd comments add` |
 | `Delete` | Delete, after confirmation | `bd delete --force` |
 
-The edit form has the fields Title, Status, Description, Priority, Type, Assignee, Labels, Defer until and Notes, and shows the Creator in its title. `Tab` and `Shift-Tab` move between fields, and `Enter` starts a new line in Description and Notes. `→` at the end of the typed text completes an assignee or label. `Ctrl-E` opens Description or Notes in `$EDITOR` and reads the text back when the editor exits. `Esc` cancels. `Ctrl-S` saves from any field, and `Enter` saves from every field except Description and Notes. The line under the form title names these keys. A value in Defer until, such as `tomorrow` or `+3d`, runs `bd defer`.
+The edit form has the fields Title, Status, Description, Priority, Type, Assignee, Labels, Defer until and Notes, and shows the Creator in its title. The create form also has Parent, prefilled with the issue selected when `Ctrl-N` was pressed; clear it to create a root issue or enter another loaded issue ID to choose a different parent. `Tab` and `Shift-Tab` move between fields, and `Enter` starts a new line in Description and Notes. `→` at the end of the typed text completes an assignee, label or parent ID. `Ctrl-E` opens Description or Notes in `$EDITOR` and reads the text back when the editor exits. `Esc` cancels. `Ctrl-S` saves from any field, and `Enter` saves from every field except Description and Notes. The line under the form title names these keys. A value in Defer until, such as `tomorrow` or `+3d`, runs `bd defer`.
 
 The view reloads by itself once `bd` has written, because b9s watches the data source. The all-projects view (`0`) is read-only.
 
