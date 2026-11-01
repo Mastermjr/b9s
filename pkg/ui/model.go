@@ -6286,6 +6286,7 @@ func (m *Model) getSelectedIssue() *model.Issue {
 func (m *Model) collectEditSuggestions() EditSuggestions {
 	labelSet := make(map[string]bool)
 	assigneeSet := make(map[string]bool)
+	parents := make([]string, 0, len(m.issues))
 	for _, issue := range m.issues {
 		for _, l := range issue.Labels {
 			if l != "" {
@@ -6294,6 +6295,9 @@ func (m *Model) collectEditSuggestions() EditSuggestions {
 		}
 		if issue.Assignee != "" {
 			assigneeSet[m.identities.DisplayName(issue.Assignee)] = true
+		}
+		if issue.ID != "" {
+			parents = append(parents, issue.ID)
 		}
 	}
 	labels := make([]string, 0, len(labelSet))
@@ -6306,7 +6310,8 @@ func (m *Model) collectEditSuggestions() EditSuggestions {
 		assignees = append(assignees, a)
 	}
 	sort.Strings(assignees)
-	return EditSuggestions{Labels: labels, Assignees: assignees}
+	sort.Strings(parents)
+	return EditSuggestions{Labels: labels, Assignees: assignees, Parents: parents}
 }
 
 // IsBoardView returns true if the board view is active (bv-5e5q).
@@ -7934,7 +7939,11 @@ func (m *Model) openEditModal(issue *model.Issue) {
 // openCreateModal opens the edit modal in create mode and stamps the current
 // project generation, for the same reason as openEditModal.
 func (m *Model) openCreateModal() {
-	m.editModal = NewCreateModalFor(m.theme, m.currentActor(), m.collectEditSuggestions())
+	parent := ""
+	if selected := m.getSelectedIssue(); selected != nil {
+		parent = selected.ID
+	}
+	m.editModal = NewCreateModalForParent(m.theme, m.currentActor(), parent, m.collectEditSuggestions())
 	m.editModal.SetSize(m.width, m.height)
 	m.showEditModal = true
 	m.editModalGeneration = m.projectGeneration

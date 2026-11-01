@@ -114,6 +114,57 @@ func TestNewEditModal_StoresOriginals(t *testing.T) {
 	}
 }
 
+func TestCreateModalForParent_PassesParent(t *testing.T) {
+	theme := DefaultTheme(lipgloss.DefaultRenderer())
+	modal := NewCreateModalForParent(theme, "alice", "epic-1")
+	*modal.title = "Child task"
+
+	if got := modal.BuildCreateArgs()["parent"]; got != "epic-1" {
+		t.Fatalf("parent arg = %q, want epic-1", got)
+	}
+}
+
+func TestCreateModalForParent_OmitsClearedParent(t *testing.T) {
+	theme := DefaultTheme(lipgloss.DefaultRenderer())
+	modal := NewCreateModalForParent(theme, "alice", "epic-1")
+	*modal.title = "Root task"
+	*modal.parent = ""
+
+	if _, ok := modal.BuildCreateArgs()["parent"]; ok {
+		t.Fatal("cleared parent must not produce --parent")
+	}
+}
+
+func TestCtrlN_PrefillsSelectedIssueAsParent(t *testing.T) {
+	issues := []model.Issue{{
+		ID:        "epic-1",
+		Title:     "Epic",
+		Status:    model.StatusOpen,
+		IssueType: model.TypeEpic,
+	}}
+	m := NewModel(issues, "")
+
+	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyCtrlN})
+	got := updated.(Model)
+	if !got.showEditModal || got.editModal.parent == nil || *got.editModal.parent != "epic-1" {
+		t.Fatalf("Ctrl-N parent = %v, want epic-1", got.editModal.parent)
+	}
+}
+
+func TestCtrlN_OnBoardPrefillsSelectedIssueAsParent(t *testing.T) {
+	m := boardKeyModel(t)
+	selected := m.board.SelectedIssue()
+	if selected == nil {
+		t.Fatal("board fixture has no selection")
+	}
+
+	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyCtrlN})
+	got := updated.(Model)
+	if !got.showEditModal || got.editModal.parent == nil || *got.editModal.parent != selected.ID {
+		t.Fatalf("Ctrl-N parent = %v, want %s", got.editModal.parent, selected.ID)
+	}
+}
+
 func TestNewCreateModal_HasDefaults(t *testing.T) {
 	theme := DefaultTheme(lipgloss.DefaultRenderer())
 	modal := NewCreateModal(theme)
@@ -494,7 +545,7 @@ func TestCreateModal_EnterInsertsNewlineInLastTextField(t *testing.T) {
 	modal := NewCreateModal(theme)
 	modal.SetSize(100, 40)
 
-	for i := 0; i < 6; i++ { // Title -> ... -> Notes
+	for i := 0; i < 7; i++ { // Title -> ... -> Parent -> Notes
 		modal = sendEditKey(t, modal, tea.KeyMsg{Type: tea.KeyTab})
 	}
 	modal = typeEdit(t, modal, "a")
